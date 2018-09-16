@@ -1,0 +1,266 @@
+{
+com.badlogic.gdx.graphics.g2d.BitmapFont: {
+	da: {
+		file: 3da.fnt
+	}
+	spt: {
+		file: spt.fnt
+	}
+}
+com.badlogic.gdx.graphics.Color: {
+	RGBA_0_0_0_255: {
+		r: 0
+		g: 0
+		b: 0
+		a: 1
+	}
+	RGBA_0_255_59_255: {
+		r: 0
+		g: 1
+		b: 0.23377776
+		a: 1
+	}
+	RGBA_148_138_160_255: {
+		r: 0.58072186
+		g: 0.54389983
+		b: 0.6299998
+		a: 1
+	}
+	RGBA_154_0_255_255: {
+		r: 0.41399387
+		g: 0.0776
+		b: 0.64666665
+		a: 1
+	}
+	RGBA_196_178_224_255: {
+		r: 0.77228445
+		g: 0.69813335
+		b: 0.88
+		a: 1
+	}
+	RGBA_255_255_255_255: {
+		r: 1
+		g: 1
+		b: 1
+		a: 1
+	}
+	RGBA_78_0_255_255: {
+		r: 0.54733324
+		g: 0
+		b: 1
+		a: 1
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Skin$TintedDrawable: {
+	progressBarFill_green: {
+		name: progressBarFill
+		color: RGBA_0_255_59_255
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Button$ButtonStyle: {
+	default: {
+		checked: pBarBg
+		checkedOver: pBarBg
+	}
+	small: {
+		up: smallButtonUp
+		down: smallButtonDown
+		over: smallButtonOver
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.CheckBox$CheckBoxStyle: {
+	default: {
+		checkboxOn: tickbox_alt
+		checkboxOff: un_tickbox_alt
+		checkboxOnDisabled: pBarBg
+		checkboxOffDisabled: pBarBg
+		font: spt
+		fontColor: RGBA_0_0_0_255
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.ImageButton$ImageButtonStyle: {
+	default: {
+		imageUp: rotateRight
+		imageDown: rotateRightDown
+	}
+	rotate_right: {
+		imageUp: rotateRight
+		imageDown: rotateRightDown
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Label$LabelStyle: {
+	default: {
+		font: spt
+		fontColor: RGBA_255_255_255_255
+		background: smallButtonUp
+	}
+	fancy: {
+		font: spt
+		fontColor: RGBA_0_0_0_255
+		background: smallButtonUp
+	}
+	heading: {
+		font: spt
+		fontColor: RGBA_154_0_255_255
+	}
+	default-white: {
+		font: spt
+		fontColor: RGBA_255_255_255_255
+	}
+	bottom_message: {
+		font: spt
+		background: bottom_message
+	}
+	top_message: {
+		font: spt
+		background: top_speech
+	}
+	right_message: {
+		font: spt
+		background: right_message
+	}
+	left_message: {
+		font: spt
+		background: left_message
+	}
+	frame: {
+		font: spt
+		fontColor: RGBA_154_0_255_255
+		background: frame
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.List$ListStyle: {
+	default: {
+		font: spt
+		fontColorSelected: RGBA_78_0_255_255
+		fontColorUnselected: RGBA_148_138_160_255
+		selection: smallButtonOver
+		background: smallButtonDisabled
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.ProgressBar$ProgressBarStyle: {
+	default-horizontal: {
+		background: pBarBg
+		knob: progressBarKnob
+		disabledKnob: progressBarKnob
+		knobBefore: loadingBar
+		knobAfter: progressBarFill
+	}
+	default-vertical: {
+		background: pBarBg
+		knob: progressBarKnobVert
+		knobBefore: progressBarFill_green
+		knobAfter: progressBarAfter
+	}
+	meter_vertical: {
+		background: pBarBg
+		knobBefore: bottom_fill
+		knobAfter: top_fill
+	}
+	game_meter: {
+		background: base
+		knob: assault_knob
+		knobBefore: loadingBar
+		knobAfter: progressBarAfter
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.ScrollPane$ScrollPaneStyle: {
+	default: {
+		background: smallButtonDisabled
+		hScrollKnob: tinyButtonDown
+		vScrollKnob: tinyButtonDown
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.SelectBox$SelectBoxStyle: {
+	default: {
+		font: spt
+		fontColor: RGBA_78_0_255_255
+		background: smallButtonOver
+		scrollStyle: default
+		listStyle: default
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Slider$SliderStyle: {
+	default-horizontal: {
+		background: tinyButtonDown
+		knob: progressBarKnobV2
+		knobBefore: before
+		knobAfter: progressBarAfter
+	}
+	default-vertical: {
+		background: pBarBg
+		knob: progressBarKnobVert
+		knobBefore: before
+		knobAfter: progressBarAfter
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.TextButton$TextButtonStyle: {
+	default: {
+		font: spt
+		fontColor: RGBA_255_255_255_255
+		downFontColor: RGBA_154_0_255_255
+		overFontColor: RGBA_148_138_160_255
+		checkedFontColor: RGBA_78_0_255_255
+		up: smallButtonUp
+		down: smallButtonDown
+		over: smallButtonDisabled
+	}
+	fat: {
+		font: spt
+		fontColor: RGBA_0_0_0_255
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.TextField$TextFieldStyle: {
+	default: {
+		font: spt
+		fontColor: RGBA_78_0_255_255
+		focusedFontColor: RGBA_0_0_0_255
+		disabledFontColor: RGBA_78_0_255_255
+		background: textField
+		focusedBackground: text_field_focus
+		disabledBackground: smallButtonDisabled
+		cursor: arrow_left
+		selection: progressBarFill
+		messageFont: spt
+		messageFontColor: RGBA_255_255_255_255
+	}
+	window: {
+		font: spt
+		fontColor: RGBA_196_178_224_255
+		focusedFontColor: RGBA_154_0_255_255
+		disabledFontColor: RGBA_255_255_255_255
+		background: dialog
+		focusedBackground: dialog
+		disabledBackground: dialog
+		cursor: arrow_left
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.TextTooltip$TextTooltipStyle: {
+	default: {
+		label: bottom_message
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Touchpad$TouchpadStyle: {
+	default: {
+		background: smallButtonDisabled
+		knob: panel_grey
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Tree$TreeStyle: {
+	default: {
+		plus: arrow_right
+		minus: arrow_left
+	}
+}
+com.badlogic.gdx.scenes.scene2d.ui.Window$WindowStyle: {
+	default: {
+		background: dialog
+		titleFont: spt
+		titleFontColor: RGBA_154_0_255_255
+	}
+	fat: {
+		titleFont: da
+		titleFontColor: RGBA_154_0_255_255
+	}
+}
+}
