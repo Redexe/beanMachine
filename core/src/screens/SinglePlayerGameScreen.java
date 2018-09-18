@@ -838,6 +838,7 @@ public class SinglePlayerGameScreen extends GameScreen implements InGameScreen {
 
                 if (Gdx.input.isKeyJustPressed(Input.Keys.U)) {
                     grid.setNewPiece(partFactory.iterateParts());
+                    grid.getAllMoves();
                 }
                 if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
                     hold(partFactory);
@@ -1016,7 +1017,7 @@ public class SinglePlayerGameScreen extends GameScreen implements InGameScreen {
 //                                partDisplay[i].setPart(p);
 //                            }
                         }
-
+                        grid.getAllMoves();
                         break;
                     case GameStatue.animate_removal:
                         /**

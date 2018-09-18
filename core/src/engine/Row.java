@@ -26,6 +26,14 @@ public class Row implements Pool.Poolable, Serializable{
 
     }
 
+    public boolean isEmpty(){
+        for(int i = 0; i < capacity; i++){
+            if(data[i] > 0)
+                return false;
+        }
+        return true;
+    }
+
     public byte get(int index) {
         if(data.length == 0) return 0;
         if (index < 0 || index >= capacity ) return Byte.MIN_VALUE;

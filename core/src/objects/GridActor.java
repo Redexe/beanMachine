@@ -25,6 +25,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ArrayMap;
+import com.badlogic.gdx.utils.IntArray;
 import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.ObjectSet;
 import com.badlogic.gdx.utils.Pool;
@@ -33,6 +34,7 @@ import org.apache.commons.lang.math.RandomUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import engine.FontUtils;
@@ -40,8 +42,10 @@ import engine.GridData;
 import engine.GridLocation;
 import engine.Row;
 
+import engine.genericAI.AStarPathFinder;
 import engine.genericAI.Algorithm;
 import engine.genericAI.Genome;
+import engine.tetrisAI.Tuner;
 import managers.PartFactory;
 import screens.GameScreen;
 
@@ -333,6 +337,7 @@ public abstract class GridActor extends Group {
     private final NinePatch sideBarC;
     private final Sprite ledSprite;
     private final ParticleEffectPool blastPool;
+    private final AStarPathFinder pathFinder;
     private ProgressBar levelProgress;
     private float framePad = 100;
     private BitmapFont font;
@@ -353,6 +358,14 @@ public abstract class GridActor extends Group {
     private int maxHeight;
     private Move bestMove;
     private static int deadZone;
+    private int generation;
+    private int populationSize = 50;
+    private Comparator<? super Genome> fitnessSort = new Comparator<Genome>() {
+        @Override
+        public int compare(Genome a, Genome b) {
+            return (int) (a.getFitness() - b.getFitness());
+        }
+    };
 
 
     public abstract void spectacularManeuver(Maneuver maneuver, int value, boolean b2b);
@@ -402,14 +415,15 @@ public abstract class GridActor extends Group {
     private boolean debug;
     private float speed = 1f;
     private float fallTime = 0;
-    private float fallDelay = 1;
+    private float fallDelay = 0.05f;
     private Array<Rectangle> tiles = new Array<Rectangle>();
     private TextureRegion backGround;
     private boolean checkTSpin;
     private Drawable frame;
     private Array<Genome> genomes;
+    private Array<Genome> children;
     private int currentGenome;
-
+    private Tuner tuner;
 
     public GridActor(GridData gridData, TextureAtlas textureAtlas, Label[][] weightLabel) {
         this(gridData, textureAtlas);
@@ -426,7 +440,7 @@ public abstract class GridActor extends Group {
         this.frame = frame;
     }
 
-    public GridActor(GridData gridData, TextureAtlas textureAtlas) {
+    public GridActor(final GridData gridData, TextureAtlas textureAtlas) {
         deadZone = 2;
         this.textureAtlas = textureAtlas;
         this.bg_cell = textureAtlas.findRegion("cell");
@@ -464,14 +478,24 @@ public abstract class GridActor extends Group {
         ParticleEffect blastParticles = new ParticleEffect();
         blastParticles.load(Gdx.files.internal("paricleEffects/blast.p"), textureAtlas);
         blastPool = new ParticleEffectPool(blastParticles, 1, 2);
-        font = FontUtils.generateFont(10, 1, 1, 1, Color.GOLD, Color.GOLDENROD, Color.BLACK, Color.WHITE, "font/zephyrea.ttf");
-        genomes = new Array<Genome>(true,50,Genome.class);
-        for(int i = 0;  i < 50; i++){
+        font = FontUtils.generateFont(18, 1, 1, 1, Color.GOLD, Color.GOLDENROD, Color.BLACK, Color.WHITE, "font/zephyrea.ttf");
+        genomes = new Array<Genome>(true,populationSize,Genome.class);
+        children = new Array<Genome>(true,populationSize/2,Genome.class);
+        for(int i = 0;  i < populationSize; i++)
             genomes.add(new Genome());
-        }
 
 
 
+        pathFinder = new AStarPathFinder(gridData.getCol(), gridData.getRow()) {
+            @Override
+            protected boolean isValid(int x, int y) {
+                return gridData.safeGetDataValueAt(x,y) == 0;
+            }
+        };
+//        path = pathFinder.findPath(null, 0, 2, 4, 2);
+        tuner = new Tuner();
+        Genome genome = tuner.initialize(500, new PartFactory(10, textureAtlas));
+        System.out.println(genome);
     }
 
 
@@ -644,12 +668,13 @@ public abstract class GridActor extends Group {
             }
         }
 
-//        if(tetromino != null && bestMove != null){
-//
-//
-//            finalX = 0;//bestMove.x;
-//            finalY = 0;//bestMove.y;
-//
+        if(tetromino != null && bestMove != null){
+
+
+            finalX = bestMove.x;
+            finalY = bestMove.y;
+
+//            TODO: make rotation and move safe
 //            if(tetromino.getRotation() != bestMove.rotation){
 //                rotationTimeElapsed+=delta;
 //                if(rotationTimeElapsed >= rotationTime){
@@ -659,25 +684,26 @@ public abstract class GridActor extends Group {
 //                    rotationTimeElapsed -= rotationTime;
 //                }
 //            }
-//
-//            float x  = tetromino.getAbsX() + bestMove.partData.getX(tetromino.getRotation()) ;
-//            float y  = tetromino.getAbsY() + bestMove.partData.getY(tetromino.getRotation()) ;
-//
-//            if(x < finalX && !move ){
+
+            float x  = tetromino.getAbsX() + bestMove.partData.getX(tetromino.getRotation()) ;
+            float y  = tetromino.getAbsY() + bestMove.partData.getY(tetromino.getRotation()) ;
+            tetromino.setRotation(bestMove.rotation);
+
+            if(x < finalX && !move ){
 //                if (!absCollision(x + 1, y, tetromino.getShape())) {
-//                    moveRight();
+                    moveRight();
 //                }
-//            }
-//
-//            else if(x > finalX && !move){
-//                if (!absCollision(x - 1, y,
-//                        tetromino.getShape())) {
-//                    moveLeft();
-//                }
-//            }
-//
-//
-//        }
+            }
+
+            else if(x > finalX && !move){
+                if (!absCollision(x - 1, y,
+                        tetromino.getShape())) {
+                    moveLeft();
+                }
+            }
+
+
+        }
 
 
     }
@@ -921,7 +947,6 @@ public abstract class GridActor extends Group {
 
 //        for (int gy = 0; gy < gridData.getRow(); gy++) {
 //            for (int gx = 0; gx < gridData.getCol(); gx++) {
-//                if(getValueAt(gx, gy) > 0) continue;
 //
 //                int value = getAutoValue(gx, gy);
 ////                if(value == 47) continue;
@@ -1334,7 +1359,7 @@ public abstract class GridActor extends Group {
         this.tetromino = tetromino;
         resetPosition();
         landed = false;
-        getAllMoves(gridData, tetromino);
+
         return tetromino;
     }
 
@@ -1368,7 +1393,7 @@ public abstract class GridActor extends Group {
         if (landed) {
 //            tetromino.moveBy(0,-1);
             fallTime = 0;
-//            fallCollision(tetromino,tetromino.getAbsX(),tetromino.getAbsY());
+            fallCollision(tetromino,tetromino.getAbsX(),tetromino.getAbsY());
 
 
             ParticleEffectPool.PooledEffect effect = blastPool.obtain();
@@ -1853,25 +1878,40 @@ public abstract class GridActor extends Group {
     }
 
 
-    private double rateBoard(Row[] gridRows, byte[] heightData) {
-        final int cols = gridData.getCol();
-
-        heightData = updateHeights(gridRows, heightData);
-        for (int i = 0; i < cols; i++) {
-            int height = heightData[i];
-            if (maxHeight < height)
-                maxHeight = height;
+    private float bumpiness(){
+        float total = 0;
+        for(int c = 0; c < gridData.getCol() - 1; c++){
+            total += Math.abs(this.gridData.getDataHeightAt(c) - this.gridData.getDataHeightAt(c + 1));
         }
+        return total;
+    }
+    private float aggregateHeight(){
+        float total = 0;
+        for(int c = 0; c < this.gridData.getCol(); c++){
+            total += gridData.getDataHeightAt(c);
+        }
+        return total;
+    }
 
-        int sumHeight = 0;
-        int holes = 0;// getHoles();
+    private int holes(){
+        int count = 0;
+        for (int x = 0; x < gridData.getCol(); x++) {
+            for (int y = 0; y < gridData.getDataHeightAt(x); y++) {
+                if (getValueAt(x,y) == 0) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    };
 
-
-        double avgHeight = ((double) sumHeight) / cols;
-
-        // Add up the counts to make an overall score
-        // The weights, 8, 40, etc., are just made up numbers that appear to work
-        return (8 * maxHeight + 40 * avgHeight + 1.25 * holes);
+    private double rateBoard(float aggregatedWeight,float heightWeight, float linesWeight, float holesWeight, float bumpinessWeight) {
+        final int maxHeight = getHeights();
+        float completeLines = getCompletedLines();
+        float holes = holes();
+        float aggregatedHeight = aggregateHeight();
+        float bumpiness = bumpiness();
+        return (heightWeight * maxHeight + aggregatedWeight * (aggregatedHeight/gridData.getCol()) + holesWeight * holes +  bumpinessWeight * bumpiness + linesWeight * completeLines);
     }
 
     private void remove(final GridData gridData, Tetromino tetromino, int rotation, int ax, int ay) {
@@ -1981,10 +2021,29 @@ public abstract class GridActor extends Group {
     private static ObjectSet<Move> prediction = new ObjectSet<Move>();
     private static ObjectSet<Move> validTiles = new ObjectSet<Move>();
 
+    public ObjectSet<Move> getAllMoves() {
+        return getAllMoves(gridData,tetromino);
+    }
+
     private ObjectSet<Move> getAllMoves(GridData gridData, Tetromino part) {
+
+        int maxHeight = 0;
+        float completeLines =0;
+        float holes =0;
+        float aggregatedHeight =0;
+        float bumpiness = 0;
+
+
         Tetromino tetromino = new Tetromino(part);
         tetromino.setAbsX(part.getAbsX());
         tetromino.setAbsY(part.getAbsY());
+
+//        0.510066, 0.760666, 0.35663, 0.184483
+//        float , float linesWeight, float holesWeight, float bumpinessWeight
+        final float aggregatedWeight = 1f,heightWeight =  0.510066f,linesWeight = 0.760666f,holesWeight = 2f,bumpinessWeight = 0.484483f;
+//        return (8 * maxHeight + 40 * avgHeight + 1.25 * holes +  1.25 * bumpiness + 9 * completeLines)
+
+
 
         validTiles.clear();
 
@@ -2003,8 +2062,8 @@ public abstract class GridActor extends Group {
 
             int x = (int) tetromino.getAbsX();
 
-            int xOffset = (int) tetromino.data.getX(rotation);
-            int yOffset = (int) tetromino.data.getY(rotation);
+            int xOffset = tetromino.data.getX(rotation);
+            int yOffset = tetromino.data.getY(rotation);
 
             while (x >= 0) {
 
@@ -2027,31 +2086,29 @@ public abstract class GridActor extends Group {
 
                         /**
                          *  The Algorithm
+                         *   return (8 * maxHeight + 40 * avgHeight + 1.25 * holes);
                          **/
+                        gridData.addTestShape(x - xOffset , y - yOffset , rotation, tetromino.data);
 
-                        Algorithm algorithm = new Algorithm(
-                                  getLinesCleared()
-                                , (float) Math.pow(getMaxColumnHeight(x, y, rotation, tetromino.data), 1.5)
-                                , getCumulativeHeight(x, y, rotation, tetromino.data)
-                                , getRelativeHeight(x, y, rotation,tetromino. data)
-                                , getHoles(x, y, rotation, tetromino.data)
-                                , getRoughness(x, y, rotation, tetromino.data)
-                        );
+                         maxHeight = getHeights();
+                        completeLines = getCompletedLines();
+                        holes = holes();
+                        aggregatedHeight = aggregateHeight();
+                        bumpiness = bumpiness();
+
+                        float directRate = (heightWeight * maxHeight + aggregatedWeight * (aggregatedHeight / gridData.getCol()) + holesWeight * holes + bumpinessWeight * bumpiness + linesWeight * completeLines);
+                        Algorithm algorithm = new Algorithm(completeLines,holes,aggregatedHeight,bumpiness,directRate);
+                        float genomicRating = algorithm.mul(genomes.get(currentGenome));
+
                         gridData.removeShape(x - xOffset , y - yOffset , rotation, tetromino.data);
-//
-                        float rating = 0;
-                        rating += algorithm.getRowsCleared() * genomes.get(currentGenome).getRowsCleared();
-                        rating += algorithm.getWeightedHeight() *  genomes.get(currentGenome).getWeightedHeight();
-                        rating += algorithm.getCumulativeHeight() * genomes.get(currentGenome).getCumulativeHeight();
-                        rating += algorithm.getRelativeHeight() * genomes.get(currentGenome).getRelativeHeight();
-                        rating += algorithm.getHoles() * genomes.get(currentGenome).getHoles();
-                        rating += algorithm.roughness * genomes.get(currentGenome).getRoughness();
 
-//                        double moveScore = getScore(gridData,x - tetromino.data.getX(rotation), y - tetromino.data.getY(rotation), rotation, tetromino.data);
                         Move move = new Move();
-                        move.set(x, y, rotation, tetromino.data, rating, algorithm);
+                        move.set(x, y, rotation, tetromino.data, directRate, algorithm);
                         validTiles.add(move);
-                        System.out.println("score "+rating);
+                        System.out.println(directRate);
+
+//                      this will only get the first move at the highest level
+                        break;
                     }
 
                     y--;
@@ -2082,29 +2139,26 @@ public abstract class GridActor extends Group {
                          *  The Algorithm
                          **/
 
-                        Algorithm algorithm = new Algorithm(
-                                  getLinesCleared()
-                                ,(float) Math.pow(getMaxColumnHeight(x, y, rotation, tetromino.data), 1.5)
-                                , getCumulativeHeight(x, y, rotation, tetromino.data)
-                                , getRelativeHeight(x, y, rotation,tetromino. data)
-                                , getHoles(x, y, rotation, tetromino.data)
-                                , getRoughness(x, y, rotation, tetromino.data)
- 				        );
-                        gridData.removeShape(x - xOffset , y - yOffset , rotation, tetromino.data);
+                        gridData.addTestShape(x - xOffset , y - yOffset , rotation, tetromino.data);
 
-                        float rating = 0;
-                        rating += algorithm.getRowsCleared() * genomes.get(currentGenome).getRowsCleared();
-                        rating += algorithm.getWeightedHeight() *  genomes.get(currentGenome).getWeightedHeight();
-                        rating += algorithm.getCumulativeHeight() * genomes.get(currentGenome).getCumulativeHeight();
-                        rating += algorithm.getRelativeHeight() * genomes.get(currentGenome).getRelativeHeight();
-                        rating += algorithm.getHoles() * genomes.get(currentGenome).getHoles();
-                        rating += algorithm.roughness * genomes.get(currentGenome).getRoughness();
+                        maxHeight = getHeights();
+                        completeLines = getCompletedLines();
+                        holes = holes();
+                        aggregatedHeight = aggregateHeight();
+                        bumpiness = bumpiness();
+
+                        float directRate = (heightWeight * maxHeight + aggregatedWeight * (aggregatedHeight / gridData.getCol()) + holesWeight * holes + bumpinessWeight * bumpiness + linesWeight * completeLines);
+                        Algorithm algorithm = new Algorithm(completeLines,holes,aggregatedHeight,bumpiness,directRate);
+                        float genomicRating = algorithm.mul(genomes.get(currentGenome));
+
+                        gridData.removeShape(x - xOffset , y - yOffset , rotation, tetromino.data);
 
 //                        double moveScore = getScore(gridData,x - tetromino.data.getX(rotation), y - tetromino.data.getY(rotation), rotation, tetromino.data);
                         Move move = new Move();
-                        move.set(x, y, rotation, tetromino.data, rating, algorithm);
+                        move.set(x, y, rotation, tetromino.data, directRate, algorithm);
                         validTiles.add(move);
-                        System.out.println("score "+rating);
+//                      this will only get the first move at the highest level
+                        break;
                     }
 
                     y--;
@@ -2118,16 +2172,18 @@ public abstract class GridActor extends Group {
         }
 
         Move bestMove = null;
-        double bestScore = Integer.MIN_VALUE;
+        Double bestScore = null;
         for(Move move : validTiles){
-            if(move.score > bestScore){
+            if(bestScore == null || move.score < bestScore){
                 bestMove = move;
                 bestScore = move.score;
             }
         }
         validTiles.clear();
-        validTiles.add(bestMove);
-        gridData.addMove(bestMove);
+
+        if(bestMove!=null){
+            this.bestMove = bestMove;
+        }
 
 ////
 
@@ -2212,15 +2268,15 @@ public abstract class GridActor extends Group {
         return cleared;
     }
 
-    private double getScore(GridData gridData, int x, int y, int rotation, PuzzleElement.PartData data) {
-
-        gridData.addShape(x, y, rotation, data);
-        byte[] heightData = new byte[gridData.getCol()];
-        double scoreMove = rateBoard(gridData.data(),heightData);
-        gridData.removeShape(x, y, rotation, data);
-
-        return scoreMove;
-    }
+//    private double getScore(GridData gridData, int x, int y, int rotation, PuzzleElement.PartData data) {
+//
+////        gridData.addShape(x, y, rotation, data);
+////        byte[] heightData = new byte[gridData.getCol()];
+////        double scoreMove = rateBoard( -0.510066f,0.760666f,-0.35663f,-0.184483f);
+////        gridData.removeShape(x, y, rotation, data);
+//
+//        return scoreMove;
+//    }
 
     private int lookDown(Row[] rows, Tetromino tetromino, int rotation) {
         int tx = (int) tetromino.getAbsX();
@@ -2611,6 +2667,13 @@ public abstract class GridActor extends Group {
         }
     };
 
+    public float getCompletedLines() {
+        float lines = 0;
+        for(int y  =0; y < gridData.getRow(); y++)
+            if(gridData.getRow(y).isFull())lines+=1;
+        return lines;
+    }
+
     public static class Move implements Pool.Poolable {
 
         public PuzzleElement.PartData partData;
@@ -2666,42 +2729,64 @@ public abstract class GridActor extends Group {
         }
     }
 
+    private int getHeights(){
+        int maxHeight = 0;
+        for(int x = 0; x < gridData.getCol(); x++)
+            gridData.setDataHeightAt(x,0);
+
+        for(int x = 0; x < gridData.getCol(); x++){
+            int y = gridData.getRow() - deadZone;
+            do {
+                byte value = gridData.getDataValueAt(x, y);
+                if(value > 0) {
+                    gridData.setDataHeightAt(x,y);
+                    if(y > maxHeight)
+                        maxHeight = y;
+                    break;
+                }
+                if(y <= 0 )
+                    break;
+                y--;
+
+           }while(true);
+        }
+        return maxHeight;
+    }
+
+
     private int getHoles(int tx, int ty, int rotation, PuzzleElement.PartData data) {
         removeShape(tx,ty,rotation,data);
-        int[] peaks = new int[]{20,20,20,20,20,20,20,20,20,20};
-        for (int row = 0; row < gridData.getRow(); row++) {
-            for (int col = 0; col < gridData.getCol(); col++) {
-                if (getValueAt(col,row) > 0 && peaks[col] == 20) {
-                    peaks[col] = row;
-                }
-            }
-        }
+
         int holes = 0;
-        for (int x = 0; x < peaks.length; x++) {
-            for (int y = peaks[x]; y < gridData.getRow(); y++) {
+        int sumHeight = 0;
+        for (int x = 0; x < gridData.getCol(); x++) {
+            for (int y = 0; y < gridData.getDataHeightAt(x); y++) {
+                sumHeight += gridData.getDataHeightAt(x);
+
                 if (getValueAt(x,y) == 0) {
                     holes++;
                 }
             }
         }
+        System.out.println("holes "+ holes);
         applyShape(tx,ty,rotation,data);
         return holes;
     }
 
     private void applyShape(int tx, int ty, int rotation, PuzzleElement.PartData data) {
-        gridData.addShape(
-                tx - data.getX(rotation),
-                ty - data.getY(rotation),
-                rotation,
-                data);
+//        gridData.addShape(
+//                tx - data.getX(rotation),
+//                ty - data.getY(rotation),
+//                rotation,
+//                data);
     }
 
     private void removeShape(int tx, int ty, int rotation, PuzzleElement.PartData data) {
-        gridData.removeShape(
-                tx - data.getX(rotation),
-                ty - data.getY(rotation),
-                rotation,
-                data);
+//        gridData.removeShape(
+//                tx - data.getX(rotation),
+//                ty - data.getY(rotation),
+//                rotation,
+//                data);
     }
 
     float getCumulativeHeight(int tx, int ty, int rotation, PuzzleElement.PartData data) {
@@ -2814,20 +2899,20 @@ public abstract class GridActor extends Group {
         return 20 - peaks[0];
     }
 
-    private void evaluateNextGenome() {
-        //increment index in genome array
-        currentGenome++;
-        //If there is none, evolves the population.
-        if (currentGenome == genomes.size) {
-            evolve();
-        }
-        //load current gamestate
-        loadState(roundState);
-        //reset moves taken
-        movesTaken = 0;
-        //and make the next move
-        makeNextMove();
-    }
+//    private void evaluateNextGenome() {
+//        //increment index in genome array
+//        currentGenome++;
+//        //If there is none, evolves the population.
+//        if (currentGenome == genomes.size) {
+//            evolve();
+//        }
+//        //load current gamestate
+//        loadState(roundState);
+//        //reset moves taken
+//        movesTaken = 0;
+//        //and make the next move
+//        makeNextMove();
+//    }
 
     private Move getHighestRatedMove(Array<Move> moves) {
         //start these values off small
@@ -2851,63 +2936,54 @@ public abstract class GridActor extends Group {
         //eventually we'll set the highest move value to this move var
         Move move = moves.get(ties.get(0));
         //and set the number of ties
-        move.algorithm.ties = ties.size;
+        move.algorithm.setTies(ties.size);
         return move;
     }
 
     void evolve() {
 
-        console.log("Generation " + generation + " evaluated.");
-        //reset current genome for new generation
         currentGenome = 0;
-        //increment generation
+
         generation++;
-        //resets the game
         reset();
-        //gets the current game state
-        roundState = getState();
+
         //sorts genomes in decreasing order of fitness values
-        genomes.sort(function(a, b) {
-            return b.fitness - a.fitness;
-        });
-        //add a copy of the fittest genome to the elites list
-        archive.elites.push(clone(genomes[0]));
-        console.log("Elite's fitness: " + genomes[0].fitness);
+        genomes.sort(fitnessSort);
+
+        System.out.printf("Most fit: %s, Least Fit: %s",genomes.first(),genomes.peek());
+
 
         //remove the tail end of genomes, focus on the fittest
-        while(genomes.length > populationSize / 2) {
+        while(genomes.size > populationSize / 2) {
             genomes.pop();
         }
         //sum of the fitness for each genome
-        var totalFitness = 0;
-        for (var i = 0; i < genomes.length; i++) {
-            totalFitness += genomes[i].fitness;
+        int totalFitness = 0;
+        for (int i = 0; i < genomes.size; i++) {
+            totalFitness += genomes.items[i].getFitness();
         }
 
-        //get a random index from genome array
-        function getRandomGenome() {
-            return genomes[randomWeightedNumBetween(0, genomes.length - 1)];
-        }
         //create children array
-        var children = [];
+
         //add the fittest genome to array
-        children.push(clone(genomes[0]));
+        children.add(genomes.first());
         //add population sized amount of children
-        while (children.length < populationSize) {
+        while (children.size < populationSize) {
             //crossover between two random genomes to make a child
-            children.push(makeChild(getRandomGenome(), getRandomGenome()));
+
+            Genome mom = genomes.random();
+            Genome dad;
+            do{
+                dad = genomes.random();
+            }while(mom.hashCode() == dad.hashCode());
+
+            children.add(makeChild(mom,dad));
         }
         //create new genome array
-        genomes = [];
+        genomes.clear();
         //to store all the children in
-        genomes = genomes.concat(children);
-        //store this in our archive
-        archive.genomes = clone(genomes);
-        //and set current gen
-        archive.currentGeneration = clone(generation);
-        console.log(JSON.stringify(archive));
-        //store archive, thanks JS localstorage! (short term memory)
-        localStorage.setItem("archive", JSON.stringify(archive));
+        genomes.addAll(children);
+        children.clear();
     }
 
     /**
@@ -2919,43 +2995,31 @@ public abstract class GridActor extends Group {
     Genome makeChild(Genome mum, Genome dad) {
         //init the child given two genomes (its 7 parameters + initial fitness value)
         Genome child = new Genome(
-                //unique id
-                RandomUtils.nextInt(),
-                randomChoice(mum.getRowsCleared(), dad.getRowsCleared()),
-                randomChoice(mum.getWeightedHeight(), dad.getWeightedHeight()),
-                randomChoice(mum.getCumulativeHeight(), dad.getCumulativeHeight()),
-                randomChoice(mum.getRelativeHeight(), dad.getRelativeHeight()),
+                randomChoice(mum.getCompleteLines(), dad.getCompleteLines()),
+                randomChoice(mum.getAggregatedHeight(), dad.getAggregatedHeight()),
+                randomChoice(mum.getBumpiness(), dad.getBumpiness()),
                 randomChoice(mum.getHoles(), dad.getHoles()),
-                randomChoice(mum.getRoughness(), dad.getRoughness()),
                 -1
         );
-        
-        //mutation time!
 
-        //we mutate each parameter using our mutationstep
         if (Math.random() < mutationRate) {
-            child.setRowsCleared((float) (child.getRowsCleared() + Math.random() * mutationStep * 2 - mutationStep));
+            child.setCompleteLines((float) (child.getCompleteLines() + Math.random() * mutationStep * 2 - mutationStep));
         }
         if (Math.random() < mutationRate) {
-            child.setWeightedHeight((float) (child.getWeightedHeight() + Math.random() * mutationStep * 2 - mutationStep));
+            child.setAggregatedHeight((float) (child.getAggregatedHeight() + Math.random() * mutationStep * 2 - mutationStep));
         }
         if (Math.random() < mutationRate) {
-            child.setCumulativeHeight((float) (child.getCumulativeHeight() + Math.random() * mutationStep * 2 - mutationStep));
-        }
-        if (Math.random() < mutationRate) {
-            child.setRelativeHeight((float) (child.getRelativeHeight() + Math.random() * mutationStep * 2 - mutationStep));
+            child.setBumpiness((float) (child.getBumpiness() + Math.random() * mutationStep * 2 - mutationStep));
         }
         if (Math.random() < mutationRate) {
             child.setHoles((float) (child.getHoles() + Math.random() * mutationStep * 2 - mutationStep));
         }
-        if (Math.random() < mutationRate) {
-            child.setRoughness((float) (child.getRoughness() + Math.random() * mutationStep * 2 - mutationStep));
-        }
+
         return child;
     }
 
     private float randomChoice(float dad, float mom) {
         return (RandomUtils.nextBoolean()) ? mom : dad;
     }
-    
+
 }

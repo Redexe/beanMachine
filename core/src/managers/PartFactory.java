@@ -23,12 +23,12 @@ public class PartFactory {
         final Array<PuzzleElement.PartData> parts = new Array<PuzzleElement.PartData>(true,7,PuzzleElement.PartData.class);
 
         parts.add(O_Shape);
-//        parts.add(I_Shape);
-//        parts.add(J_Shape);
-//        parts.add(L_Shape);
-//        parts.add(T_Shape);
-//        parts.add(S_Shape);
-//        parts.add(Z_Shape);
+        parts.add(I_Shape);
+        parts.add(J_Shape);
+        parts.add(L_Shape);
+        parts.add(T_Shape);
+        parts.add(S_Shape);
+        parts.add(Z_Shape);
 
         allShapes = parts.toArray();
 
@@ -152,5 +152,9 @@ public class PartFactory {
 
     public int getFutureCount() {
         return tetraminos.size;
+    }
+
+    public Tetromino getRandom() {
+        return tetraminosPool.obtain().setData(allShapes[randomPart()]);
     }
 }

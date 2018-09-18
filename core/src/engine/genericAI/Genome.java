@@ -1,84 +1,38 @@
 package engine.genericAI;
 
 
-public class Genome {
-    float id = 0;
-    float rowsCleared = 0;
-    float weightedHeight = 0;
-    float cumulativeHeight = 0;
-    float relativeHeight = 0;
-    float holes = 0;
-    float roughness = 0;
-    float fitness = 0;
+import com.badlogic.gdx.utils.Json;
 
-    public Genome(float id, float rowsCleared, float weightedHeight, float cumulativeHeight, float relativeHeight, float holes, float roughness, float fitness) {
-        this.id = id;
-        this.rowsCleared = rowsCleared;
-        this.weightedHeight = weightedHeight;
-        this.cumulativeHeight = cumulativeHeight;
-        this.relativeHeight = relativeHeight;
-        this.holes = holes;
-        this.roughness = roughness;
-        this.fitness = fitness;
-    }
+public class Genome {
+
+    float completeLines = 0;
+    float holes = 0;
+    float aggregatedHeight = 0;
+    float bumpiness = 0;
+    float fitness  =0;
 
     public Genome() {
-        this((float)Math.random(),
+        this(
+                (float)Math.random(),
                 (float)Math.random() - 0.5f,
                 (float)Math.random() - 0.5f,
-                (float)Math.random() - 0.5f,
-                (float)Math.random() - 0.5f,
-                (float)Math.random() * 0.5f,
                 (float)Math.random() - 0.5f,-1);
     }
 
-
-    public float getFitness() {
-        return fitness;
-    }
-
-    public void setFitness(float fitness) {
+    public Genome(float completeLines, float holes, float aggregatedHeight, float bumpiness, float fitness) {
+        this.completeLines = completeLines;
+        this.holes = holes;
+        this.aggregatedHeight = aggregatedHeight;
+        this.bumpiness = bumpiness;
         this.fitness = fitness;
     }
 
-    public float getId() {
-        return id;
+    public float getCompleteLines() {
+        return completeLines;
     }
 
-    public void setId(float id) {
-        this.id = id;
-    }
-
-    public float getRowsCleared() {
-        return rowsCleared;
-    }
-
-    public void setRowsCleared(float rowsCleared) {
-        this.rowsCleared = rowsCleared;
-    }
-
-    public float getWeightedHeight() {
-        return weightedHeight;
-    }
-
-    public void setWeightedHeight(float weightedHeight) {
-        this.weightedHeight = weightedHeight;
-    }
-
-    public float getCumulativeHeight() {
-        return cumulativeHeight;
-    }
-
-    public void setCumulativeHeight(float cumulativeHeight) {
-        this.cumulativeHeight = cumulativeHeight;
-    }
-
-    public float getRelativeHeight() {
-        return relativeHeight;
-    }
-
-    public void setRelativeHeight(float relativeHeight) {
-        this.relativeHeight = relativeHeight;
+    public void setCompleteLines(float completeLines) {
+        this.completeLines = completeLines;
     }
 
     public float getHoles() {
@@ -89,11 +43,62 @@ public class Genome {
         this.holes = holes;
     }
 
-    public float getRoughness() {
-        return roughness;
+    public float getAggregatedHeight() {
+        return aggregatedHeight;
     }
 
-    public void setRoughness(float roughness) {
-        this.roughness = roughness;
+    public void setAggregatedHeight(float aggregatedHeight) {
+        this.aggregatedHeight = aggregatedHeight;
+    }
+
+    public float getBumpiness() {
+        return bumpiness;
+    }
+
+    public void setBumpiness(float bumpiness) {
+        this.bumpiness = bumpiness;
+    }
+
+    public float getFitness() {
+        return fitness;
+    }
+
+    public void setFitness(float fitness) {
+        this.fitness = fitness;
+    }
+
+    public Genome normalize(){
+        double norm = Math.sqrt( aggregatedHeight * aggregatedHeight + completeLines * completeLines + holes * holes +  bumpiness * bumpiness);
+        aggregatedHeight /= norm;
+        completeLines /= norm;
+        holes /= norm;
+        bumpiness /= norm;
+        return this;
+    }
+
+    public static Genome newGenome(){
+        return new Genome().normalize();
+    }
+
+    public void mutHeight(double quantity) {
+        aggregatedHeight+=quantity;
+    }
+
+    public void mutLines(double quantity) {
+        completeLines+=quantity;
+    }
+
+    public void mutHoles(double quantity) {
+        holes+=quantity;
+    }
+
+    public void mutBump(double quantity) {
+        bumpiness+=quantity;
+    }
+
+    @Override
+    public String toString() {
+        Json json= new Json();
+        return json.toJson(this,this.getClass());
     }
 }

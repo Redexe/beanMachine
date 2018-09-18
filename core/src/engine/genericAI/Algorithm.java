@@ -1,54 +1,30 @@
 package engine.genericAI;
 
+import com.badlogic.gdx.utils.Json;
+
 public class Algorithm {
 
-    public float rowsCleared;
-    public float weightedHeight;
-    public float cumulativeHeight;
-    public float relativeHeight;
-    public float holes;
-    public float roughness;
-    public int ties;
+    float completeLines = 0;
+    float holes = 0;
+    float aggregatedHeight = 0;
+    float bumpiness = 0;
+    float rating  =0;
+    private int ties;
 
-    public Algorithm(float rowsCleared, float weightedHeight, float cumulativeHeight, float relativeHeight, float holes, float roughness) {
-        this.rowsCleared = rowsCleared;
-        this.weightedHeight = weightedHeight;
-        this.cumulativeHeight = cumulativeHeight;
-        this.relativeHeight = relativeHeight;
+    public Algorithm(float completeLines, float holes, float aggregatedHeight, float bumpiness, float rating) {
+        this.completeLines = completeLines;
         this.holes = holes;
-        this.roughness = roughness;
+        this.aggregatedHeight = aggregatedHeight;
+        this.bumpiness = bumpiness;
+        this.rating = rating;
     }
 
-    public float getRowsCleared() {
-        return rowsCleared;
+    public float getCompleteLines() {
+        return completeLines;
     }
 
-    public void setRowsCleared(float rowsCleared) {
-        this.rowsCleared = rowsCleared;
-    }
-
-    public float getWeightedHeight() {
-        return weightedHeight;
-    }
-
-    public void setWeightedHeight(float weightedHeight) {
-        this.weightedHeight = weightedHeight;
-    }
-
-    public float getCumulativeHeight() {
-        return cumulativeHeight;
-    }
-
-    public void setCumulativeHeight(float cumulativeHeight) {
-        this.cumulativeHeight = cumulativeHeight;
-    }
-
-    public float getRelativeHeight() {
-        return relativeHeight;
-    }
-
-    public void setRelativeHeight(float relativeHeight) {
-        this.relativeHeight = relativeHeight;
+    public void setCompleteLines(float completeLines) {
+        this.completeLines = completeLines;
     }
 
     public float getHoles() {
@@ -59,11 +35,50 @@ public class Algorithm {
         this.holes = holes;
     }
 
-    public float getRoughness() {
-        return roughness;
+    public float getAggregatedHeight() {
+        return aggregatedHeight;
     }
 
-    public void setRoughness(float roughness) {
-        this.roughness = roughness;
+    public void setAggregatedHeight(float aggregatedHeight) {
+        this.aggregatedHeight = aggregatedHeight;
+    }
+
+    public float getBumpiness() {
+        return bumpiness;
+    }
+
+    public void setBumpiness(float bumpiness) {
+        this.bumpiness = bumpiness;
+    }
+
+    public float getRating() {
+        return rating;
+    }
+
+    public void setRating(float rating) {
+        this.rating = rating;
+    }
+
+    @Override
+    public String toString() {
+        Json json = new Json();
+        return json.toJson(this,this.getClass());
+    }
+
+    public float mul(Genome genome) {
+        float rating = 0;
+        rating += completeLines * genome.getCompleteLines();
+        rating += holes *  genome.getHoles();
+        rating += aggregatedHeight * genome.getAggregatedHeight();
+        rating += bumpiness * genome.getBumpiness();
+        return rating;
+    }
+
+    public void setTies(int ties) {
+        this.ties = ties;
+    }
+
+    public int getTies() {
+        return ties;
     }
 }

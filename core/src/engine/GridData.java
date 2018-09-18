@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
+import engine.tetrisAI.Tuner;
 import objects.GridActor;
 import objects.PuzzleElement;
 import objects.Tetromino;
@@ -18,6 +19,7 @@ import objects.Tetromino;
 public abstract class GridData  implements Serializable{
 
 
+    private final Tuner tuner;
     private int actualRows;
     private Row[] items;
     private final double[][] weight;
@@ -27,6 +29,7 @@ public abstract class GridData  implements Serializable{
     private final int cols;
     private boolean dirty;
     private int holes;
+    private int deadZone;
 
     public GridData(int col, int row) {
         this.cols = col;
@@ -39,6 +42,8 @@ public abstract class GridData  implements Serializable{
         height =  new byte[col];
         auto =  new int[row][col];
         actualRows = rows;
+        deadZone = 2;
+        tuner = new Tuner();
     }
 
     public GridData(){
@@ -103,7 +108,7 @@ public abstract class GridData  implements Serializable{
     }
     public String print() {
         StringBuilder stringBuilder = new StringBuilder();
-        for(int row = rows; row >= 0; row--){
+        for(int row = rows-1; row > 0; row--){
             for(int col = 0; col < cols; col++){
                 stringBuilder.append("[").append(getDataValueAt(col,row)).append("]");
             }
@@ -400,4 +405,92 @@ public abstract class GridData  implements Serializable{
 
 
 
+    public boolean exceeded() {
+        return !items[rows-1].isEmpty()||!items[rows-2].isEmpty();
+    }
+
+    public int clearLines() {
+        int cleared = 0;
+        for(int r = this.rows - 1; r >= 0; r--){
+            if (items[r].isFull()){
+                cleared++;
+                removeRow(r);
+            }
+        }
+        return cleared;
+    }
+
+    public boolean collision(float tx, float ty, int rotation, PuzzleElement.PartData partData,boolean safe) {
+
+        byte[][] shapeData = partData.getData()[rotation];
+
+        for (int y = 0; y < shapeData.length; y++) {
+            for (int x = 0; x < shapeData[y].length; x++) {
+
+                if (shapeData[y][x] > 0) {
+
+                    float b_x = (tx + x);
+                    float b_y = (ty + y);
+                    if (safe ? safeGetDataValueAt((int) b_x, (int) b_y) != 0 : getDataValueAt((int) b_x, (int) b_y) != 0) {
+                        return true;
+                    }
+
+                }
+            }
+        }
+
+        return false;
+    }
+
+
+    public float bumpiness(){
+        float total = 0;
+        for(int c = 0; c < getCol() - 1; c++){
+            total += Math.abs(this.getDataHeightAt(c) - this.getDataHeightAt(c + 1));
+        }
+        return total;
+    }
+    public float aggregateHeight(){
+        float total = 0;
+        for(int c = 0; c < this.getCol(); c++){
+            total += getDataHeightAt(c);
+        }
+        return total;
+    }
+
+    public int holes(){
+        int count = 0;
+        for (int x = 0; x < getCol(); x++) {
+            for (int y = 0; y < getDataHeightAt(x); y++) {
+                if (getDataValueAt(x,y) == 0) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    public int getHeights(){
+        int maxHeight = 0;
+        for(int x = 0; x < getCol(); x++)
+            setDataHeightAt(x,0);
+
+        for(int x = 0; x < getCol(); x++){
+            int y = getRow() - deadZone;
+            do {
+                byte value = getDataValueAt(x, y);
+                if(value > 0) {
+                    setDataHeightAt(x,y);
+                    if(y > maxHeight)
+                        maxHeight = y;
+                    break;
+                }
+                if(y <= 0 )
+                    break;
+                y--;
+
+            }while(true);
+        }
+        return maxHeight;
+    }
 }
